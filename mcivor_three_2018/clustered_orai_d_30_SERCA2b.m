@@ -1,0 +1,167 @@
+% lengths and r, phi, z grids
+r_a=100;
+val_Dm=220;
+val_De=10;
+Dm=val_Dm*1e6;     %Diffusion coefficent of calcium in the cytoplasm (nm^2/s) <--- CORRECT DIFF COEFF!!!
+De=val_De*1e6;     %Diffusion coefficent of calcium in the ER (nm^2/s) <--- CORRECT DIFF COEFF!!!
+n_timesteps=20;
+
+eps=1e-16;
+r_b=2000;       %outer radius of annulus (nm)
+H=2500;         %height of annulus (nm)
+L2=2485;         %Height of ER (nm)
+L1=2000;
+L0=10;
+
+dz_m=0.15;  %gives 101 meshpoints in z array
+z_m=L2:dz_m:H;
+dz_s=4.85;  %gives 101 meshpoints in z array
+z_s=L1:dz_s:L2;
+
+NT=150;
+dtheta_150=(2*pi-eps)/NT;  %gives 101 meshpoints in theta array
+dtheta_250=dtheta_150*30/50;  %gives 101 meshpoints in theta array
+
+theta_150=0:dtheta_150:2*pi-eps;
+theta_250=0:dtheta_250:2*pi-eps;
+
+dt=1e-6;
+
+
+dr=0.2;      %gives 75 mesh points in r array
+r_02=dr:dr:r_a;
+
+% build matrices for plotting concentration profiles
+[THETA_150,RHO] = meshgrid(theta_150,r_02);
+[X_150,Y_150] = pol2cart(THETA_150,RHO);
+[Z_150_s,t_150_s]=meshgrid(theta_150,z_s);
+[Z_150_j,t_150_j]=meshgrid(theta_150,z_m);
+
+[THETA_250,RHO] = meshgrid(theta_250,r_02);
+[X_250,Y_250] = pol2cart(THETA_250,RHO);
+[Z_250_s,t_250_s]=meshgrid(theta_250,z_s);
+[Z_250_j,t_250_j]=meshgrid(theta_250,z_m);
+
+%% load calcium concentration
+
+% r_orai=30, r_SERCA=60, SERCA2b
+fn_data='./simulations/SERCA2b_ICRAC_2.1e-15-flux_per_estimated_area_orai_channel-J_S_Gaussian_BC-r_CRAC_150-5CRACs-r_SERCA_300-theta_SERCA_1-10_SERCAs-Vmax_5.9781e-17_n_max_75_Dm220_De_10_dt_1e-06_dr_0.2_dphi_0.041888_dz_0.15r_a_100_T_1000-sr_0.05-st_0.05/SOCE-p_50.mat';   
+load(fn_data)
+JrtzT_o30_s60_2b=reshape(ER_PM_junction_soln(:,:,end),length(r_02),length(theta_150),length(z_m));
+JzrtT_o30_s60_2b=reshape(ER_PM_junction_soln(:,:,end)',length(z_m),length(r_02),length(theta_150));
+JztrT_o30_s60_2b=permute(JzrtT_o30_s60_2b,[1 3 2]);
+
+SrtzT_o30_s60_2b=reshape(Sub_PM_ER_soln(:,:,end),length(r_02),length(theta_150),length(z_m));
+SzrtT_o30_s60_2b=reshape(Sub_PM_ER_soln(:,:,end)',length(z_m),length(r_02),length(theta_150));
+SztrT_o30_s60_2b=permute(SzrtT_o30_s60_2b,[1 3 2]);
+
+fn_data='./simulations/SERCA2b_ICRAC_2.1e-15-flux_per_estimated_area_orai_channel-J_S_Gaussian_BC-r_CRAC_150-5CRACs-r_SERCA_300-theta_SERCA_1-10_SERCAs-Vmax_5.9781e-17_n_max_75_Dm220_De_10_dt_1e-06_dr_0.2_dphi_0.041888_dz_0.15r_a_100_T_1000-sr_0.05-st_0.05/SERCA_activity.mat';   
+load(fn_data)
+SERCA2b_activity_o30_s60=SERCA_activity;
+
+%% make directory to save figures
+cd_data_save='./simulation_figures';
+
+if exist(cd_data_save,'dir')
+else
+    mkdir(cd_data_save);
+end
+cd(cd_data_save)
+
+%% Make figures 
+% cut along diameter of junction
+
+r=[-fliplr(r_02),r_02];
+
+JrtzT_rORAI_30_PM=[fliplr(JrtzT_o30_s60_2b(:,46+75,end)'),JrtzT_o30_s60_2b(:,46,end)'];
+JrtzT_rORAI_30_ER=[fliplr(JrtzT_o30_s60_2b(:,46+75,1)'),JrtzT_o30_s60_2b(:,46,1)'];
+
+figure(1);
+plot(r,JrtzT_rORAI_30_PM,'b','linewidth',3)
+xlim([-r_a r_a])
+ylim([0 65.4])
+xlabel('r (nm)')
+ylabel('C (\mu M)')
+set(gca,'fontsize',30,'fontweight','bold')
+savefig('junction_diameter_J_PM_rO30_rS60')
+print('-f1','-bestfit','junction_diameter_J_PM_rO30_rS60','-dpdf','-opengl')
+
+figure(2);
+plot(r,JrtzT_rORAI_30_ER,'b',r,'linewidth',3)
+xlim([-r_a r_a])
+ylim([0 8])
+xlabel('r (nm)')
+ylabel('C (\mu M)')
+set(gca,'fontsize',30,'fontweight','bold')
+savefig('junction_diameter_J_ER_rO30_rS60_rO50_rS80')
+print('-f2','-bestfit','junction_diameter_J_ER_rO30_rS60_rO50_rS80','-dpdf','-opengl')
+
+q1='../code_matrices/colormap_zPM.mat';
+load(q1)
+
+fig=figure(3);
+pcolor(X_150,Y_150,JrtzT_o30_s60_2b(:,:,end))
+shading interp
+colormap(cmap_zPM)
+caxis([0.1 60.4])
+colorbar
+c=colorbar;
+c.Label.String='C (\mu M)';
+xlabel('r')
+ylabel('r')
+set(gca,'fontsize',30,'fontweight','bold')
+set(gca,'OuterPosition',[0 0 .925 1])
+
+[x60,y60]=pol2cart(theta_150(46),60);
+[x80,y80]=pol2cart(theta_250(76),80);
+[x90,y90]=pol2cart(theta_150(46),90);
+[xd1,yd1]=pol2cart(theta_150(16),r_02);
+[xd2,yd2]=pol2cart(theta_150(16+75),r_02);
+[xd3,yd3]=pol2cart(theta_250(26),r_02);
+[xd4,yd4]=pol2cart(theta_250(26+125),r_02);
+
+figure(3);
+hold on;
+plot(xd1,yd1,'k--',xd2,yd2,'k--','linewidth',2)
+savefig('junction_rO30_rS60_PM_SERCA2b')
+print('-f3','-bestfit','junction_rO30_rS60_PM_SERCA2b','-dpdf','-opengl')
+
+figure(5);
+pcolor(X_150,Y_150,JrtzT_o30_s60_2b(:,:,1))
+shading interp
+colormap(jet)
+caxis([0.1 7.0855])
+colorbar
+c=colorbar;
+c.Label.String='C (\mu M)';
+xlabel('r')
+ylabel('r')
+set(gca,'fontsize',30,'fontweight','bold')
+set(gca,'OuterPosition',[0 0 .925 1])
+
+figure(5);
+hold on;
+plot(x60,y60,'xk',x90,y90,'^k','markersize',10,'linewidth',3)
+plot(xd1,yd1,'k--',xd2,yd2,'k--','linewidth',3)
+savefig('junction_rO30_rS60_ER_SERCA2b')
+print('-f5','-bestfit','junction_rO30_rS60_ER_SERCA2b','-dpdf','-opengl')
+
+
+q6='../code_matrices/colormap_refill_rO3050.mat';
+load(q6)
+
+figure(103);
+pcolor(Z_150_s(60:end,:),t_150_s(60:end,:),SztrT_o30_s60_2b(60:end,:,60/dr))
+shading interp
+caxis([150 161.1])
+colormap(cmap_refill_rO3050)
+colorbar
+c=colorbar;
+c.Label.String='C (\mu M)';
+xlabel('\theta')
+yticks([2290 2485])
+yticklabels({'ER_{i}','ERM'})
+set(gca,'fontsize',30,'fontweight','bold')
+set(gca,'OuterPosition',[0 0 .89 1])
+savefig('subPMER_rO30_rS60_radius_slice_r60_SERCA2b')
+print('-f103','-bestfit','subPMER_rO30_rS60_radius_slice_r60_SERCA2b','-dpdf','-opengl')
