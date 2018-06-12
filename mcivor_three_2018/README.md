@@ -1,6 +1,6 @@
 # Instructions for running code
 
-This code was used to create plots of the simulated calcium profiles in the paper 'Three-dimensional spatio-temporal modelling of store operated Ca2+ entry: insights into ER refilling and the spatial signature of Ca2+ signals'.
+This code was used to create plots of the simulated calcium profiles in the paper 'Three-dimensional spatio-temporal modelling of store operated Ca2+ entry: insights into ER refilling and the spatial signature of Ca2+ signals' available at <https://www.sciencedirect.com/science/article/pii/S0143416018300149>.
 
 Below are the instructions for running the code, everything you need is within this folder. 
 All instructions are run in a MATLAB session, and assume that the scripts are available in the working directory.
